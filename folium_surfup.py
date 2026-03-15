@@ -72,9 +72,28 @@ st.subheader("A Skill-Based Forecast for Cantabria Beginners")
 # Fetch data
 data = get_surf_conditions()
 
-# Create Map
-m = folium.Map(location=[43.45, -3.6], zoom_start=11)
+# --- IMPROVED MAP INTERFACE ---
 
+# 1. Initialize the Map with Usability Limits
+m = folium.Map(
+    location=[43.45, -3.6], 
+    zoom_start=11, 
+    min_zoom=9,           # State-of-the-art: Limited zoom out
+    max_zoom=16,          # State-of-the-art: Limited zoom in
+    tiles='openstreetmap', 
+    control_scale=True    # State-of-the-art: Scale Bar
+)
+
+# 2. Add a Raster Layer (Satellite View)
+folium.TileLayer(
+    tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', # Google Hybrid (Satellite + Labels)
+    attr='Google',
+    name='Satellite View',
+    overlay=False,
+    control=True
+).add_to(m)
+
+# 3. Define Color Map for Markers
 color_map = {
     "beginner": "green",
     "intermediate": "beige",
@@ -82,26 +101,47 @@ color_map = {
     "not recommended": "red"
 }
 
+# 4. Loop through data to create markers
 for loc in data:
-    # Create HTML Table for Popup
+    # Webcam Database (Customize these URLs!)
+    webcam_links = {
+        "Somo Beach": "https://www.skylinewebcams.com/en/webcam/espana/cantabria/santander/playa-de-somo.html",
+        "Laredo Beach": "https://www.skylinewebcams.com/en/webcam/espana/cantabria/laredo/playa-de-salve.html",
+        "Berria Beach": "https://www.skylinewebcams.com/en/webcam/espana/cantabria/santona/playa-de-berria.html",
+        "El Sardinero": "https://www.skylinewebcams.com/en/webcam/espana/cantabria/santander/playa-del-sardinero.html"
+    }
+    # Default link if spot not in list
+    cam_url = webcam_links.get(loc['name'], "https://www.surfline.com")
+
+    # Styling the Popup with HTML/CSS for "Adequate Styling"
     html = f"""
-    <div style="font-family: sans-serif; width: 180px;">
-        <h4 style="margin-bottom:5px;">{loc['name']}</h4>
-        <hr>
-        <b>Level:</b> {loc['level'].title()}<br>
-        <b>Wave:</b> {loc['wave_height']:.2f}m @ {loc['wave_period']:.1f}s<br>
-        <b>Wind:</b> {loc['wind_speed']:.1f} km/h
+    <div style="font-family: 'Helvetica', sans-serif; width: 200px; padding: 5px;">
+        <h4 style="margin:0 0 10px 0; color: #2c3e50; border-bottom: 2px solid #3498db;">{loc['name']}</h4>
+        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 8px; border-left: 5px solid {color_map.get(loc['level'])};">
+            <b>Condition:</b> <span style="color: {color_map.get(loc['level'])}; text-transform: uppercase;">{loc['level']}</span><br>
+            <b>Wave:</b> {loc['wave_height']:.2f}m @ {loc['wave_period']:.1f}s<br>
+            <b>Wind:</b> {loc['wind_speed']:.1f} km/h
+        </div>
+        <br>
+        <a href="{cam_url}" target="_blank" 
+           style="display: block; text-align: center; background-color: #3498db; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 12px;">
+           📺 VIEW LIVE WEBCAM
+        </a>
     </div>
     """
     
+    # Create Marker with FontAwesome icons for professional look
     folium.Marker(
         location=[loc['lat'], loc['lon']],
-        popup=folium.Popup(html),
-        tooltip=loc['name'],
-        icon=folium.Icon(color=color_map.get(loc['level']), icon="info-sign")
+        popup=folium.Popup(html, max_width=250),
+        tooltip=f"{loc['name']}: {loc['level'].title()}",
+        icon=folium.Icon(color=color_map.get(loc['level']), icon="tint", prefix="fa")
     ).add_to(m)
 
-# Display Map
-st_folium(m, width=900, height=500)
+# 5. Add Layer Control (Toggle between Street and Satellite)
+folium.LayerControl(position='topright', collapsed=False).add_to(m)
+
+# 6. Display the Map in Streamlit
+st_folium(m, width="100%", height=600)
 
 st.info("💡 Map updates automatically every hour. Data provided by Open-Meteo.")
