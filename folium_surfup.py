@@ -89,7 +89,7 @@ for loc in data:
         <h4 style="margin-bottom:5px;">{loc['name']}</h4>
         <hr>
         <b>Level:</b> {loc['level'].title()}<br>
-        <b>Wave:</b> {loc['wave_height']:.2f}m @ {loc['wave_period']:.1s}s<br>
+        <b>Wave:</b> {loc['wave_height']:.2f}m @ {loc['wave_period']:.1f}s<br>
         <b>Wind:</b> {loc['wind_speed']:.1f} km/h
     </div>
     """
